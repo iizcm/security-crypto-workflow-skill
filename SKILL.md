@@ -4,40 +4,49 @@ description: "Safe workflow untuk BIP39 recovery phrase, auto-sweep, dan semua o
 version: 1.0.0
 author: User (iizcm)
 license: Proprietary
-platforms: [linux, macos, windows]
-tags: [[security, crypto, wallet, recovery, sweep]]
+tags: [security, crypto, wallet, recovery, sweep]
 ---
 
-# Security Crypto Workflow — Skill
+# Security & Crypto Workflow
 
-Safe workflow untuk BIP39 recovery phrase, auto-sweep, dan semua operasi crypto yang melibatkan private key. Menekankan keamanan, verifikasi alamat, dan tidak pernah sweep tanpa konfirmasi eksplisit user.
+Semua operasi crypto yang melibatkan private key, seed phrase, atau penyaluran dana HARUS mengikuti aturan ini.
 
-## Install
+## Aturan Emas
 
-```bash
-cp -r <skill-name> ~/.hermes/skills/<skill-path>/
+1. **JANGAN pernah menyimpan private key/mnemonic dalam script/bot** — gunakan env var dengan chmod 600.
+2. **Verifikasi alamat wallet** sebelum apa pun — jangan asumsikan phrase yang direcover menghasilkan wallet milik user.
+3. **Tidak ada auto-sweep** tanpa konfirmasi eksplisit user per-wallet. Ketik "CONFIRM SWEEP" huruf besar.
+4. **Sweep semua wallet matching = DILARANG** — bisa include wallet orang lain, risiko pencurian & ilegal.
+
+## Recovery Phrase (1 kata hilang)
+
+### Format input user:
+```
+recover: word1 word2 word3 ... ____ word12
+hint: huruf pertama 'x' / panjang '5' huruf
 ```
 
-Or clone this repository:
+### Workflow:
+1. Generate ~4096 kemungkinan (seluruh BIP39 wordlist)
+2. Cek setiap address yang dihasilkan → cocok dengan wallet user?
+3. Jika ADA yang match → LAPORKAN ke user, TIDAK auto-sweep
+4. User pilih mana yang mau disweep → konfirmasi eksplisit → eksekusi per-wallet
 
-```bash
-git clone https://github.com/iizcm/security-crypto-workflow-skill.git ~/.hermes/skills/<skill-path>/
-```
+### Pitfalls:
+- BIP39 dengan 1 kata hilang = 2047 kemungkinan valid (2048 - kata yang ada). Bisa produce banyak address.
+- Multiple wallets bisa match (false positive dari randomness). Verifikasi saldo + ownership.
+- Jangan pernah dump semua address ke chat — hanya report yang ada saldo.
 
-## Usage
+## Auto-Sweep Setup
 
-Invoke your AI agent with a clear instruction matching this skill's purpose. The agent will route tasks to this skill when the instruction matches its description or trigger keywords.
+### Validasi sebelum deploy:
+1. Konfirmasi target address by user
+2. Tentukan chain (Base, ETH, dll)
+3. Tentukan token (USDC, WBTC, dll)
+4. Setup cron job dengan interval scan (30s/1m/5m)
+5. Log semua transaksi ke file terpisah
 
-Refer to `README.md` in this repository for:
-- Detailed step-by-step installation guide
-- Bilingual documentation (English + Indonesian)
-- Troubleshooting table
-- Security best practices
-- Customization tips
-
-## Safety rules
-
-- Never commit private keys, seed phrases, API tokens, or personal data to version control
-- Use placeholders (`<YOUR_...>`) in all examples and code snippets
-- Validate all outputs before acting on them
-- Keep real credentials in your runtime's secure credential store only
+### Risk check:
+- Gas fluktuasi bisa bikin tx fail atau mahal
+- Bug/error → dana terjebak/permanen hilang
+- Always test dengan jumlah kecil dulu
